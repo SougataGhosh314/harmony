@@ -91,28 +91,6 @@ class DatabaseService {
   //user data from snapshot
   AppUser _userDataFromSnapshot(DocumentSnapshot snapshot) {
     print(snapshot.get("phoneNumber"));
-    // print(snapshot.get("profileImageUrl"));
-    // // print(snapshot.get("friends"));
-
-    // print("before invoking constructor");
-
-    // print("checking snapshot: " +
-    //     (snapshot.get("friends") is List<dynamic>).toString());
-
-    // print(friends.toString() + " type: " + friends.runtimeType.toString());
-
-    // AppUser x = AppUser(
-    //     name: "dick",
-    //     uid: "adwd",
-    //     phoneNumber: "54450",
-    //     friends: ["pen", "pencil"],
-    //     posts: [],
-    //     incomingRequests: [],
-    //     outgoingRequests: [],
-    //     profileImageUrl: "cdsc");
-
-    // print("check object: " + (x.friends is List<String>).toString());
-
     AppUser user = AppUser(
         uid: uid,
         name: snapshot.get("name"),
@@ -124,10 +102,6 @@ class DatabaseService {
         outgoingRequests:
             dynamicListToStringList(snapshot.get("outgoingRequests")),
         posts: dynamicListToStringList(snapshot.get("posts")));
-
-    // print("after invoking constructor");
-
-    // print("friends: ${user.friends}");
 
     return user;
   }
@@ -268,17 +242,135 @@ class DatabaseService {
         reference.doc(uid).update({"outgoingRequests": reqs});
       }
     });
+  }
 
-    // print("reaches here");
+  // unsend friend request
+  Future unSendRequest(String id) {
+    print("reaches unSendRequest: " + id + " : " + uid);
 
-    // await reference.doc(uid).get().then((DocumentSnapshot ds) {
-    //   List<String> reqs = ds.data()["outgoingRequests"];
-    //   reqs.add(id);
-    //   reference
-    //       .doc(uid)
-    //       .set({"outgoingRequests": reqs})
-    //       .then((val) => print("request sent"))
-    //       .catchError((error) => print(error));
-    // });
+    reference.doc(id).get().then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        List<String> reqs =
+            dynamicListToStringList(ds.data()["incomingRequests"]);
+        reqs.forEach((item) => print(item));
+
+        reqs.remove(uid);
+        reference.doc(id).update({"incomingRequests": reqs});
+      }
+    });
+
+    reference.doc(uid).get().then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        List<String> reqs =
+            dynamicListToStringList(ds.data()["outgoingRequests"]);
+        reqs.forEach((item) => print(item));
+
+        reqs.remove(id);
+        reference.doc(uid).update({"outgoingRequests": reqs});
+      }
+    });
+  }
+
+  // accept friend request
+  Future acceptRequest(String id) {
+    print("reaches acceptRequest: " + id + " : " + uid);
+
+    // remove from my incoming list
+    reference.doc(uid).get().then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        List<String> reqs =
+            dynamicListToStringList(ds.data()["incomingRequests"]);
+        reqs.forEach((item) => print(item));
+
+        reqs.remove(id);
+        reference.doc(uid).update({"incomingRequests": reqs});
+      }
+    });
+
+    // remove from his outgoing list
+    reference.doc(id).get().then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        List<String> reqs =
+            dynamicListToStringList(ds.data()["outgoingRequests"]);
+        reqs.forEach((item) => print(item));
+
+        reqs.remove(uid);
+        reference.doc(id).update({"outgoingRequests": reqs});
+      }
+    });
+
+    // add it to my friend list
+    reference.doc(uid).get().then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        List<String> reqs = dynamicListToStringList(ds.data()["friends"]);
+        reqs.forEach((item) => print(item));
+
+        reqs.add(id);
+        reference.doc(uid).update({"friends": reqs});
+      }
+    });
+
+    // add it to his/her friend list
+    reference.doc(id).get().then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        List<String> reqs = dynamicListToStringList(ds.data()["friends"]);
+        reqs.forEach((item) => print(item));
+
+        reqs.add(uid);
+        reference.doc(id).update({"friends": reqs});
+      }
+    });
+  }
+
+  // reject friend request
+  Future rejectRequest(String id) {
+    print("reaches rejectRequest: " + id + " : " + uid);
+
+    reference.doc(uid).get().then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        List<String> reqs =
+            dynamicListToStringList(ds.data()["incomingRequests"]);
+        reqs.forEach((item) => print(item));
+
+        reqs.remove(id);
+        reference.doc(uid).update({"incomingRequests": reqs});
+      }
+    });
+
+    reference.doc(id).get().then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        List<String> reqs =
+            dynamicListToStringList(ds.data()["outgoingRequests"]);
+        reqs.forEach((item) => print(item));
+
+        reqs.remove(uid);
+        reference.doc(id).update({"outgoingRequests": reqs});
+      }
+    });
+  }
+
+  // unfriend
+  Future unFriend(String id) {
+    print("reaches unFriend: " + id + " : " + uid);
+
+    reference.doc(uid).get().then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        List<String> reqs = dynamicListToStringList(ds.data()["friends"]);
+        reqs.forEach((item) => print(item));
+
+        reqs.remove(id);
+        reference.doc(uid).update({"friends": reqs});
+      }
+    });
+
+    reference.doc(id).get().then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        List<String> reqs = dynamicListToStringList(ds.data()["friends"]);
+        reqs.forEach((item) => print(item));
+
+        reqs.remove(uid);
+        reference.doc(id).update({"friends": reqs});
+      }
+    });
   }
 }
