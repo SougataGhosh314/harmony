@@ -8,6 +8,7 @@ import 'package:harmony_ghosh/screens/nav_items/friends/friends.dart';
 import 'package:harmony_ghosh/screens/nav_items/people/people.dart';
 import 'package:harmony_ghosh/screens/nav_items/recieved_requests/recieved_requests.dart';
 import 'package:harmony_ghosh/screens/nav_items/sent_requests/sent_requests.dart';
+import 'package:harmony_ghosh/screens/posts/add_post.dart';
 import 'package:harmony_ghosh/screens/wrapper.dart';
 import 'package:harmony_ghosh/services/auth.dart';
 import 'package:provider/provider.dart';
@@ -32,7 +33,8 @@ class MyApp extends StatelessWidget {
           "/people": (context) => People(),
           "/friends": (context) => Friends(),
           "/sent_requests": (context) => SentRequests(),
-          "/recieved_requests": (context) => RecievedRequests()
+          "/recieved_requests": (context) => RecievedRequests(),
+          "/add_post": (context) => AddPost()
         },
       ),
     );

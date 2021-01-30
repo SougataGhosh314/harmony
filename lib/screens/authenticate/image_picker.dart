@@ -146,17 +146,6 @@ class _UploaderState extends State<Uploader> {
           .child(filePath)
           .putFile(widget.file);
 
-      // String url = (await firebase_storage.FirebaseStorage.instance
-      //         .ref()
-      //         .child("profile_images/${user.uid}.png")
-      //         .getDownloadURL())
-      //     .toString();
-
-      // print("Download from:  " + url);
-      // print(user.name);
-
-      //DatabaseService(uid: user.uid).updateUserData(user.name, url);
-
       return "Success";
     } catch (e) {
       return e.toString();

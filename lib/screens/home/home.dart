@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:harmony_ghosh/models/app_user.dart';
+import 'package:harmony_ghosh/screens/home/my_feed/Posts.dart';
 import 'package:harmony_ghosh/services/auth.dart';
 import 'package:flutter/material.dart';
 import 'package:harmony_ghosh/services/database.dart';
@@ -82,7 +83,7 @@ class _HomeState extends State<Home> {
               backgroundColor: Colors.white54,
               appBar: AppBar(
                 title: Text(
-                  "Welcome ${appUser.name}", // $emailOfSignedInUser
+                  "${appUser.name}", // $emailOfSignedInUser
                   style: TextStyle(fontSize: 12, color: Colors.white),
                 ),
                 backgroundColor: Colors.black87,
@@ -121,8 +122,28 @@ class _HomeState extends State<Home> {
                 ],
               ),
               body: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Text("Home body"),
+                padding: const EdgeInsets.all(5.0),
+                child: Column(
+                  children: [
+                    Center(
+                      child: ElevatedButton(
+                        child: Text(
+                          "Add Post",
+                          style: TextStyle(color: Colors.black),
+                        ),
+                        onPressed: () {
+                          // add post here
+                          Navigator.pushNamed(context, "/add_post");
+                        },
+                        style: ElevatedButton.styleFrom(
+                            primary: Colors.blue[100],
+                            elevation: 10,
+                            shadowColor: Colors.black),
+                      ),
+                    ),
+                    Expanded(child: Posts()),
+                  ],
+                ),
               ),
             );
           } else {

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:harmony_ghosh/models/app_user.dart';
+import 'package:harmony_ghosh/models/post.dart';
 
 class DatabaseService {
   final String uid;
@@ -9,6 +10,9 @@ class DatabaseService {
   // collection reference
   final CollectionReference reference =
       FirebaseFirestore.instance.collection("appusers");
+
+  final CollectionReference postReference =
+      FirebaseFirestore.instance.collection("posts");
 
   Future updateName(String newName) {
     reference.doc(uid).get().then((DocumentSnapshot ds) {
@@ -372,5 +376,77 @@ class DatabaseService {
         reference.doc(id).update({"friends": reqs});
       }
     });
+  }
+
+  // create post
+  Future createPost(Post post) async {
+    postReference.doc(post.postId).set({
+      "postId": post.postId,
+      "creatorId": post.creatorId,
+      "textContent": post.textContent,
+      "mediaContentURL": post.mediaContentURL,
+      "visibility": post.visibility,
+      "comments": [],
+      "likes": []
+    });
+
+    reference.doc(uid).get().then((DocumentSnapshot ds) {
+      List<String> posts = dynamicListToStringList(ds.data()["posts"]);
+      posts.add(post.postId);
+      reference.doc(uid).update({"posts": posts});
+    });
+  }
+
+  // post list from snapshot
+  Future<List<FeedPost>> getPosts() async {
+    List<FeedPost> list = [];
+
+    await reference.doc(uid).get().then((DocumentSnapshot ds) async {
+      // print("for posts, friends found: " +
+      //     ds.data()["friends"].length.toString());
+
+      for (var i = 0; i < ds.data()["friends"].length; i++) {
+        await reference
+            .doc(ds.data()["friends"][i])
+            .get()
+            .then((DocumentSnapshot sp) async {
+          // print("31a post found for friend " +
+          //     ds.data()["friends"][i] +
+          //     " :: " +
+          //     sp.data()["posts"].length.toString());
+
+          for (var i = 0; i < sp.data()["posts"].length; i++) {
+            await postReference
+                .doc(sp.data()["posts"][i])
+                .get()
+                .then((DocumentSnapshot postDoc) async {
+              if (postDoc.data()["visibility"] != "private") {
+                String timeStamp = postDoc.data()["postId"].split("_")[1];
+
+                list.add(FeedPost(
+                    postId: postDoc.data()["postId"],
+                    creatorName:
+                        await getNameFromDB(postDoc.data()["creatorId"]),
+                    textContent: postDoc.data()["textContent"],
+                    mediaContentURL: postDoc.data()["mediaContentURL"],
+                    timeOfPost: DateTime.fromMillisecondsSinceEpoch(
+                            int.parse(timeStamp))
+                        .toString(),
+                    // (DateTime.fromMillisecondsSinceEpoch(
+                    //         postDoc.data()["postId"].split("_")[1]))
+                    //     .toString()
+                    comments:
+                        dynamicListToStringList(postDoc.data()["comments"]),
+                    likes: dynamicListToStringList(postDoc.data()["likes"])));
+              }
+            });
+          }
+        });
+      }
+    });
+
+    print("reached here");
+    print("post list at the end: " + list.toString());
+    return list;
   }
 }

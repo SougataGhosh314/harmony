@@ -39,29 +39,6 @@ class _MyProfileState extends State<MyProfile> {
   Widget build(BuildContext context) {
     final user = Provider.of<AppUser>(context);
 
-    // try {
-    //   dynamic result = getDownloadURL(user.uid);
-    //   setState(() {
-    //     imageURL = result.toString();
-    //     print("Image url: ${imageURL.toString()}");
-    //   });
-    // } catch (e) {
-    //   print(e.toString());
-    // }
-
-    // try {
-    //   String url =
-    //       await ref.child("profile_images/${user.uid}.png").getDownloadURL();
-    //   print(url);
-    // } catch (e) {
-    //   print(e.toString());
-    //   imageURL = user.profileImageUrl;
-    // }
-    //dynamic url = getUrl(_storage);
-
-    // CollectionReference ref = FirebaseFirestore.instance.collection("appusers");
-    // DocumentSnapshot dr = ref.doc(user.uid).get();
-
     return StreamBuilder<AppUser>(
         stream: DatabaseService(uid: user.uid).userData,
         builder: (context, snapshot) {
