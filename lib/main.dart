@@ -3,8 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:harmony_ghosh/models/app_user.dart';
 import 'package:harmony_ghosh/screens/authenticate/image_picker.dart';
+import 'package:harmony_ghosh/screens/home/home.dart';
 import 'package:harmony_ghosh/screens/home/my_profile.dart';
 import 'package:harmony_ghosh/screens/nav_items/friends/friends.dart';
+import 'package:harmony_ghosh/screens/nav_items/my_timeline/my_posts.dart';
 import 'package:harmony_ghosh/screens/nav_items/people/people.dart';
 import 'package:harmony_ghosh/screens/nav_items/recieved_requests/recieved_requests.dart';
 import 'package:harmony_ghosh/screens/nav_items/sent_requests/sent_requests.dart';
@@ -28,8 +30,10 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         home: Wrapper(),
         routes: {
+          "/home": (context) => Home(),
           "/image_picker": (context) => ImageSelector(),
           "/my_profile": (context) => MyProfile(),
+          "/my_posts": (context) => MyPosts(),
           "/people": (context) => People(),
           "/friends": (context) => Friends(),
           "/sent_requests": (context) => SentRequests(),

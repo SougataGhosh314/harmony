@@ -92,27 +92,47 @@ class DatabaseService {
     return toReturn;
   }
 
-  //user data from snapshot
-  AppUser _userDataFromSnapshot(DocumentSnapshot snapshot) {
-    print(snapshot.get("phoneNumber"));
-    AppUser user = AppUser(
-        uid: uid,
-        name: snapshot.get("name"),
-        profileImageUrl: snapshot.get("profileImageUrl"),
-        phoneNumber: snapshot.get("phoneNumber"),
-        friends: dynamicListToStringList(snapshot.get("friends")),
-        incomingRequests:
-            dynamicListToStringList(snapshot.get("incomingRequests")),
-        outgoingRequests:
-            dynamicListToStringList(snapshot.get("outgoingRequests")),
-        posts: dynamicListToStringList(snapshot.get("posts")));
+  // //user data from snapshot
+  // AppUser _userDataFromSnapshot(DocumentSnapshot snapshot) {
+  //   print(snapshot.get("phoneNumber"));
+  //   AppUser user = AppUser(
+  //       uid: uid,
+  //       name: snapshot.get("name"),
+  //       profileImageUrl: snapshot.get("profileImageUrl"),
+  //       phoneNumber: snapshot.get("phoneNumber"),
+  //       friends: dynamicListToStringList(snapshot.get("friends")),
+  //       incomingRequests:
+  //           dynamicListToStringList(snapshot.get("incomingRequests")),
+  //       outgoingRequests:
+  //           dynamicListToStringList(snapshot.get("outgoingRequests")),
+  //       posts: dynamicListToStringList(snapshot.get("posts")));
 
-    return user;
-  }
+  //   return user;
+  // }
 
   // get user doc stream
   Stream<AppUser> get userData {
-    return reference.doc(uid).snapshots().map(_userDataFromSnapshot);
+    //AppUser appUser;
+    return reference.doc(uid).snapshots().map((DocumentSnapshot ds) {
+      print(ds.get("phoneNumber"));
+      print(ds.get("friends").length);
+      AppUser appUser;
+
+      appUser = AppUser(
+          uid: uid,
+          name: ds.get("name"),
+          profileImageUrl: ds.get("profileImageUrl"),
+          phoneNumber: ds.get("phoneNumber"),
+          friends: dynamicListToStringList(ds.get("friends")),
+          incomingRequests: dynamicListToStringList(ds.get("incomingRequests")),
+          outgoingRequests: dynamicListToStringList(ds.get("outgoingRequests")),
+          posts: dynamicListToStringList(ds.get("posts")));
+
+      return appUser;
+    });
+
+    //return appUser;
+    //return reference.doc(uid).snapshots().map(_userDataFromSnapshot);
   }
 
   Future getNameFromDB(String uid) async {
@@ -397,53 +417,84 @@ class DatabaseService {
     });
   }
 
+  // delete post
+  Future deletePost(String postId) async {
+    postReference.doc(postId).delete();
+
+    reference.doc(uid).get().then((DocumentSnapshot ds) {
+      List<String> posts = dynamicListToStringList(ds.data()["posts"]);
+      posts.remove(postId);
+      reference.doc(uid).update({"posts": posts});
+    });
+  }
+
   // post list from snapshot
-  Future<List<FeedPost>> getPosts() async {
+  Future<List<FeedPost>> getPosts(List<String> friends) async {
     List<FeedPost> list = [];
 
-    await reference.doc(uid).get().then((DocumentSnapshot ds) async {
-      // print("for posts, friends found: " +
-      //     ds.data()["friends"].length.toString());
+    for (var i = 0; i < friends.length; i++) {
+      await reference.doc(friends[i]).get().then((DocumentSnapshot sp) async {
+        // print("31a post found for friend " +
+        //     ds.data()["friends"][i] +
+        //     " :: " +
+        //     sp.data()["posts"].length.toString());
 
-      for (var i = 0; i < ds.data()["friends"].length; i++) {
-        await reference
-            .doc(ds.data()["friends"][i])
-            .get()
-            .then((DocumentSnapshot sp) async {
-          // print("31a post found for friend " +
-          //     ds.data()["friends"][i] +
-          //     " :: " +
-          //     sp.data()["posts"].length.toString());
+        for (var i = 0; i < sp.data()["posts"].length; i++) {
+          await postReference
+              .doc(sp.data()["posts"][i])
+              .get()
+              .then((DocumentSnapshot postDoc) async {
+            if (postDoc.data()["visibility"] != "private") {
+              String timeStamp = postDoc.data()["postId"].split("_")[1];
 
-          for (var i = 0; i < sp.data()["posts"].length; i++) {
-            await postReference
-                .doc(sp.data()["posts"][i])
-                .get()
-                .then((DocumentSnapshot postDoc) async {
-              if (postDoc.data()["visibility"] != "private") {
-                String timeStamp = postDoc.data()["postId"].split("_")[1];
+              list.add(FeedPost(
+                  postId: postDoc.data()["postId"],
+                  creatorName: await getNameFromDB(postDoc.data()["creatorId"]),
+                  textContent: postDoc.data()["textContent"],
+                  mediaContentURL: postDoc.data()["mediaContentURL"],
+                  timeOfPost:
+                      DateTime.fromMillisecondsSinceEpoch(int.parse(timeStamp))
+                          .toString(),
+                  // (DateTime.fromMillisecondsSinceEpoch(
+                  //         postDoc.data()["postId"].split("_")[1]))
+                  //     .toString()
+                  comments: dynamicListToStringList(postDoc.data()["comments"]),
+                  likes: dynamicListToStringList(postDoc.data()["likes"])));
+            }
+          });
+        }
+      });
+    }
 
-                list.add(FeedPost(
-                    postId: postDoc.data()["postId"],
-                    creatorName:
-                        await getNameFromDB(postDoc.data()["creatorId"]),
-                    textContent: postDoc.data()["textContent"],
-                    mediaContentURL: postDoc.data()["mediaContentURL"],
-                    timeOfPost: DateTime.fromMillisecondsSinceEpoch(
-                            int.parse(timeStamp))
-                        .toString(),
-                    // (DateTime.fromMillisecondsSinceEpoch(
-                    //         postDoc.data()["postId"].split("_")[1]))
-                    //     .toString()
-                    comments:
-                        dynamicListToStringList(postDoc.data()["comments"]),
-                    likes: dynamicListToStringList(postDoc.data()["likes"])));
-              }
-            });
-          }
-        });
-      }
-    });
+    print("reached here");
+    print("post list at the end: " + list.toString());
+    return list;
+  }
+
+  Future<List<FeedPost>> getMyOwnPosts(List<String> posts) async {
+    List<FeedPost> list = [];
+    for (var i = 0; i < posts.length; i++) {
+      await postReference
+          .doc(posts[i])
+          .get()
+          .then((DocumentSnapshot postDoc) async {
+        String timeStamp = postDoc.data()["postId"].split("_")[1];
+
+        list.add(FeedPost(
+            postId: postDoc.data()["postId"],
+            creatorName: await getNameFromDB(postDoc.data()["creatorId"]),
+            textContent: postDoc.data()["textContent"],
+            mediaContentURL: postDoc.data()["mediaContentURL"],
+            timeOfPost:
+                DateTime.fromMillisecondsSinceEpoch(int.parse(timeStamp))
+                    .toString(),
+            // (DateTime.fromMillisecondsSinceEpoch(
+            //         postDoc.data()["postId"].split("_")[1]))
+            //     .toString()
+            comments: dynamicListToStringList(postDoc.data()["comments"]),
+            likes: dynamicListToStringList(postDoc.data()["likes"])));
+      });
+    }
 
     print("reached here");
     print("post list at the end: " + list.toString());

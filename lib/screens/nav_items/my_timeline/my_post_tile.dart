@@ -7,18 +7,18 @@ import 'package:harmony_ghosh/services/database.dart';
 import 'package:harmony_ghosh/shared/loading.dart';
 import 'package:provider/provider.dart';
 
-class PostTile extends StatefulWidget {
+class MyPostTile extends StatefulWidget {
   final FeedPost post;
 
-  PostTile({this.post});
+  MyPostTile({this.post});
 
   @override
-  _PostTileState createState() => _PostTileState(post: post);
+  _MyPostTileState createState() => _MyPostTileState(post: post);
 }
 
-class _PostTileState extends State<PostTile> {
+class _MyPostTileState extends State<MyPostTile> {
   final FeedPost post;
-  _PostTileState({this.post});
+  _MyPostTileState({this.post});
 
   String postPicFromDB = "";
 
@@ -49,19 +49,43 @@ class _PostTileState extends State<PostTile> {
             SizedBox(
               height: 5,
             ),
-            Text(
-              "by " + post.creatorName,
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.blue[700]),
-            ),
-            SizedBox(
-              height: 5,
-            ),
-            Text("on " + post.timeOfPost),
-            SizedBox(
-              height: 5,
+            Row(
+              children: [
+                Column(
+                  children: [
+                    Text(
+                      "by " + post.creatorName,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.blue[700]),
+                    ),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    Text("on " + post.timeOfPost),
+                    SizedBox(
+                      height: 5,
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  width: 60,
+                ),
+                FlatButton(
+                  color: Colors.black26,
+                  child: Text("Delete post"),
+                  onPressed: () async {
+                    await DatabaseService(uid: post.postId.split("_")[0])
+                        .deletePost(post.postId);
+
+                    Fluttertoast.showToast(
+                        msg: "Post deleted successfully",
+                        gravity: ToastGravity.CENTER,
+                        toastLength: Toast.LENGTH_LONG);
+                  },
+                ),
+              ],
             ),
             ListTile(
               leading: ElevatedButton(
