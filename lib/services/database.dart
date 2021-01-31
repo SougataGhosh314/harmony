@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:harmony_ghosh/models/app_user.dart';
+import 'package:harmony_ghosh/models/chat_thread.dart';
+import 'package:harmony_ghosh/models/comment.dart';
 import 'package:harmony_ghosh/models/post.dart';
 
 class DatabaseService {
@@ -10,6 +12,10 @@ class DatabaseService {
   // collection reference
   final CollectionReference reference =
       FirebaseFirestore.instance.collection("appusers");
+
+  // collection reference
+  final CollectionReference chatThreadsReference =
+      FirebaseFirestore.instance.collection("chatthreads");
 
   final CollectionReference postReference =
       FirebaseFirestore.instance.collection("posts");
@@ -91,24 +97,6 @@ class DatabaseService {
 
     return toReturn;
   }
-
-  // //user data from snapshot
-  // AppUser _userDataFromSnapshot(DocumentSnapshot snapshot) {
-  //   print(snapshot.get("phoneNumber"));
-  //   AppUser user = AppUser(
-  //       uid: uid,
-  //       name: snapshot.get("name"),
-  //       profileImageUrl: snapshot.get("profileImageUrl"),
-  //       phoneNumber: snapshot.get("phoneNumber"),
-  //       friends: dynamicListToStringList(snapshot.get("friends")),
-  //       incomingRequests:
-  //           dynamicListToStringList(snapshot.get("incomingRequests")),
-  //       outgoingRequests:
-  //           dynamicListToStringList(snapshot.get("outgoingRequests")),
-  //       posts: dynamicListToStringList(snapshot.get("posts")));
-
-  //   return user;
-  // }
 
   // get user doc stream
   Stream<AppUser> get userData {
@@ -499,5 +487,140 @@ class DatabaseService {
     print("reached here");
     print("post list at the end: " + list.toString());
     return list;
+  }
+
+  Future<List<Comment>> getComments(String postId) async {
+    List<Comment> comments = [];
+    await postReference
+        .doc(postId)
+        .get()
+        .then((DocumentSnapshot postDoc) async {
+      if (postDoc.data()["comments"].length != 0) {
+        print(postDoc.data()["comments"].length.toString() +
+            postDoc.data()["comments"][0]);
+
+        for (int i = 0; i < postDoc.data()["comments"].length; i++) {
+          String timeStamp = postDoc.data()["comments"][i].split("_")[1];
+          String id = postDoc.data()["comments"][i].split("_")[0];
+          String text = postDoc.data()["comments"][i].split("_")[2];
+
+          comments.add(Comment(
+            commenterId: id,
+            commenter: await getNameFromDB(id),
+            timeStamp: DateTime.fromMillisecondsSinceEpoch(int.parse(timeStamp))
+                .toString(),
+            textContent: text,
+          ));
+        }
+      }
+    });
+
+    print("reached here");
+    print("comments list at the end: " + comments.toString());
+    return comments;
+  }
+
+  // post a comment
+  Future postComment(String text, String postId) {
+    print("reaches postComment: " + text + " : " + uid);
+
+    postReference.doc(postId).get().then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        List<String> reqs = dynamicListToStringList(ds.data()["comments"]);
+        reqs.forEach((item) => print(item));
+
+        String comment = uid.toString() +
+            "_" +
+            DateTime.now().millisecondsSinceEpoch.toString() +
+            "_" +
+            text;
+
+        reqs.add(comment);
+        postReference.doc(postId).update({"comments": reqs});
+      }
+    });
+  }
+
+  Future getUpdatedPost(String postId) async {
+    FeedPost updatedPost;
+
+    await postReference.doc(postId).get().then((DocumentSnapshot ds) async {
+      if (ds.exists) {
+        String timeStamp = ds.data()["postId"].split("_")[1];
+
+        updatedPost = FeedPost(
+            postId: ds.data()["postId"],
+            creatorName: await getNameFromDB(ds.data()["creatorId"]),
+            textContent: ds.data()["textContent"],
+            mediaContentURL: ds.data()["mediaContentURL"],
+            timeOfPost:
+                DateTime.fromMillisecondsSinceEpoch(int.parse(timeStamp))
+                    .toString(),
+            // (DateTime.fromMillisecondsSinceEpoch(
+            //         postDoc.data()["postId"].split("_")[1]))
+            //     .toString()
+            comments: dynamicListToStringList(ds.data()["comments"]),
+            likes: dynamicListToStringList(ds.data()["likes"]));
+      }
+    });
+
+    return updatedPost;
+  }
+
+  Future sendMessage(String recipientId, String message) async {
+    bool done = false;
+
+    String modifiedMessage = uid +
+        "_" +
+        recipientId +
+        "_" +
+        DateTime.now().millisecondsSinceEpoch.toString() +
+        "_" +
+        message;
+
+    await chatThreadsReference
+        .doc(uid + "_" + recipientId)
+        .get()
+        .then((DocumentSnapshot ds) {
+      if (ds.exists) {
+        print("Existence::: " + "uid_recipientId");
+
+        List<String> reqs = dynamicListToStringList(ds.data()["chatList"]);
+        reqs.forEach((item) => print(item));
+
+        reqs.add(modifiedMessage);
+        chatThreadsReference
+            .doc(uid + "_" + recipientId)
+            .update({"chatList": reqs});
+        done = true;
+      }
+    });
+
+    if (!done) {
+      await chatThreadsReference
+          .doc(recipientId + "_" + uid)
+          .get()
+          .then((DocumentSnapshot ds) {
+        if (ds.exists) {
+          print("Existence::: " + "uid_recipientId");
+          List<String> reqs = dynamicListToStringList(ds.data()["chatList"]);
+          reqs.forEach((item) => print(item));
+
+          reqs.add(modifiedMessage);
+          chatThreadsReference
+              .doc(recipientId + "_" + uid)
+              .update({"chatList": reqs});
+          done = true;
+        }
+      });
+    }
+
+    if (!done) {
+      await chatThreadsReference.doc(uid + "_" + recipientId).set({
+        "participantOne": uid,
+        "participantTwo": recipientId,
+        "chatList": [modifiedMessage]
+      });
+    }
   }
 }

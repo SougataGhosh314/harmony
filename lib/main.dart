@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:harmony_ghosh/models/app_user.dart';
 import 'package:harmony_ghosh/screens/authenticate/image_picker.dart';
+import 'package:harmony_ghosh/screens/chat/chat_window.dart';
 import 'package:harmony_ghosh/screens/home/home.dart';
 import 'package:harmony_ghosh/screens/home/my_profile.dart';
 import 'package:harmony_ghosh/screens/nav_items/friends/friends.dart';
@@ -11,6 +12,7 @@ import 'package:harmony_ghosh/screens/nav_items/people/people.dart';
 import 'package:harmony_ghosh/screens/nav_items/recieved_requests/recieved_requests.dart';
 import 'package:harmony_ghosh/screens/nav_items/sent_requests/sent_requests.dart';
 import 'package:harmony_ghosh/screens/posts/add_post.dart';
+import 'package:harmony_ghosh/screens/posts/interact_with_feedpost.dart';
 import 'package:harmony_ghosh/screens/wrapper.dart';
 import 'package:harmony_ghosh/services/auth.dart';
 import 'package:provider/provider.dart';
@@ -38,7 +40,9 @@ class MyApp extends StatelessWidget {
           "/friends": (context) => Friends(),
           "/sent_requests": (context) => SentRequests(),
           "/recieved_requests": (context) => RecievedRequests(),
-          "/add_post": (context) => AddPost()
+          "/add_post": (context) => AddPost(),
+          "/interact_with_feed_post": (context) => InteractWithFeedPost(),
+          "/chat_window": (context) => ChatPage()
         },
       ),
     );

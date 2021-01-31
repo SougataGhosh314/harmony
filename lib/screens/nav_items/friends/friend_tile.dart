@@ -99,71 +99,90 @@ class _FriendTileState extends State<FriendTile> {
               padding: EdgeInsets.only(top: 8),
               child: Card(
                 margin: EdgeInsets.fromLTRB(20, 6, 20, 0),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: NetworkImage(imageURL),
-                    radius: 25,
-                    backgroundColor: Colors.red,
-                  ),
-                  title: Text(
-                    widget.name,
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18),
-                  ),
-                  subtitle: Text(
-                    tileSubtitle,
-                    style: TextStyle(
-                        color: Colors.blue[900],
-                        fontWeight: FontWeight.bold,
-                        fontStyle: FontStyle.italic,
-                        fontSize: 12),
-                  ),
-                  trailing: FlatButton(
-                    color: buttonColor,
-                    child: Text(
-                      buttonText,
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage: NetworkImage(imageURL),
+                        radius: 25,
+                        backgroundColor: Colors.red,
+                      ),
+                      title: Text(
+                        widget.name,
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18),
+                      ),
+                      subtitle: Text(
+                        tileSubtitle,
+                        style: TextStyle(
+                            color: Colors.blue[900],
+                            fontWeight: FontWeight.bold,
+                            fontStyle: FontStyle.italic,
+                            fontSize: 12),
+                      ),
+                      trailing: FlatButton(
+                        color: buttonColor,
+                        child: Text(
+                          buttonText,
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () async {
+                          // send invite here
+                          if (isOther) {
+                            await DatabaseService(uid: user.uid)
+                                .sendRequest(uid);
+                            Fluttertoast.showToast(
+                              msg: "Request sent",
+                              toastLength: Toast.LENGTH_LONG,
+                              gravity: ToastGravity.CENTER,
+                            );
+                            //Navigator.pop(context);
+                          } else if (isFriend) {
+                            await DatabaseService(uid: user.uid).unFriend(uid);
+                            Fluttertoast.showToast(
+                              msg: "Removed friend",
+                              toastLength: Toast.LENGTH_LONG,
+                              gravity: ToastGravity.CENTER,
+                            );
+                            //Navigator.pop(context);
+                          } else if (isInIncomingRequests) {
+                            await DatabaseService(uid: user.uid)
+                                .acceptRequest(uid);
+                            Fluttertoast.showToast(
+                              msg: "Added friend",
+                              toastLength: Toast.LENGTH_LONG,
+                              gravity: ToastGravity.CENTER,
+                            );
+                            //Navigator.pop(context);
+                          } else if (isInOutgoingRequests) {
+                            await DatabaseService(uid: user.uid)
+                                .unSendRequest(uid);
+                            Fluttertoast.showToast(
+                              msg: "Request was unsent",
+                              toastLength: Toast.LENGTH_LONG,
+                              gravity: ToastGravity.CENTER,
+                            );
+                            //Navigator.pop(context);
+                          }
+                        },
+                      ),
                     ),
-                    onPressed: () async {
-                      // send invite here
-                      if (isOther) {
-                        await DatabaseService(uid: user.uid).sendRequest(uid);
-                        Fluttertoast.showToast(
-                          msg: "Request sent",
-                          toastLength: Toast.LENGTH_LONG,
-                          gravity: ToastGravity.CENTER,
-                        );
-                        //Navigator.pop(context);
-                      } else if (isFriend) {
-                        await DatabaseService(uid: user.uid).unFriend(uid);
-                        Fluttertoast.showToast(
-                          msg: "Removed friend",
-                          toastLength: Toast.LENGTH_LONG,
-                          gravity: ToastGravity.CENTER,
-                        );
-                        //Navigator.pop(context);
-                      } else if (isInIncomingRequests) {
-                        await DatabaseService(uid: user.uid).acceptRequest(uid);
-                        Fluttertoast.showToast(
-                          msg: "Added friend",
-                          toastLength: Toast.LENGTH_LONG,
-                          gravity: ToastGravity.CENTER,
-                        );
-                        //Navigator.pop(context);
-                      } else if (isInOutgoingRequests) {
-                        await DatabaseService(uid: user.uid).unSendRequest(uid);
-                        Fluttertoast.showToast(
-                          msg: "Request was unsent",
-                          toastLength: Toast.LENGTH_LONG,
-                          gravity: ToastGravity.CENTER,
-                        );
-                        //Navigator.pop(context);
-                      }
-                    },
-                  ),
+                    ElevatedButton(
+                      child: Text("Chat with " + widget.name),
+                      onPressed: () async {
+                        Navigator.pushNamed(context, "/chat_window",
+                            arguments: {
+                              "me": userData,
+                              "buddyId": uid,
+                              "buddyName": name,
+                              "buddyAvatar": imageURL
+                            });
+                      },
+                    ),
+                  ],
                 ),
               ),
             );

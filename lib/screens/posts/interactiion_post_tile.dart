@@ -7,18 +7,19 @@ import 'package:harmony_ghosh/services/database.dart';
 import 'package:harmony_ghosh/shared/loading.dart';
 import 'package:provider/provider.dart';
 
-class PostTile extends StatefulWidget {
+class InteractionPostTile extends StatefulWidget {
   final FeedPost post;
 
-  PostTile({this.post});
+  InteractionPostTile({this.post});
 
   @override
-  _PostTileState createState() => _PostTileState(post: post);
+  _InteractionPostTileState createState() =>
+      _InteractionPostTileState(post: post);
 }
 
-class _PostTileState extends State<PostTile> {
+class _InteractionPostTileState extends State<InteractionPostTile> {
   final FeedPost post;
-  _PostTileState({this.post});
+  _InteractionPostTileState({this.post});
 
   String postPicFromDB = "";
 
@@ -74,21 +75,6 @@ class _PostTileState extends State<PostTile> {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
                 onPressed: () {},
-              ),
-              trailing: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    elevation: 10,
-                    primary: Colors.brown[800],
-                    shadowColor: Colors.amber),
-                child: Text(
-                  "Comment",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                onPressed: () async {
-                  // redirect here
-                  Navigator.pushNamed(context, "/interact_with_feed_post",
-                      arguments: {"post": post});
-                },
               ),
             ),
           ],
