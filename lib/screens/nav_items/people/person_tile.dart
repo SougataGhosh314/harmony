@@ -105,10 +105,17 @@ class _PersonTileState extends State<PersonTile> {
               child: Card(
                 margin: EdgeInsets.fromLTRB(20, 6, 20, 0),
                 child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: NetworkImage(imageURL),
-                    radius: 25,
-                    backgroundColor: Colors.red,
+                  leading: FloatingActionButton(
+                    heroTag: null,
+                    child: CircleAvatar(
+                      backgroundImage: NetworkImage(imageURL),
+                      radius: 25,
+                      backgroundColor: Colors.red,
+                    ),
+                    onPressed: () {
+                      Navigator.pushNamed(context, "/person_profile",
+                          arguments: {"me": userData, "personId": uid});
+                    },
                   ),
                   title: Text(
                     widget.name,

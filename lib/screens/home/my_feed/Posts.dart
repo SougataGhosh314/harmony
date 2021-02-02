@@ -8,27 +8,29 @@ import 'package:provider/provider.dart';
 
 class Posts extends StatefulWidget {
   final List<String> friends;
-  Posts({this.friends});
+  AppUser user;
+  Posts({this.friends, this.user});
 
   @override
-  _PostsState createState() => _PostsState(friends: friends);
+  _PostsState createState() => _PostsState(friends: friends, user: user);
 }
 
 class _PostsState extends State<Posts> {
   final List<String> friends;
-  _PostsState({this.friends});
+  AppUser user;
+  _PostsState({this.friends, this.user});
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<AppUser>(context);
+    final userX = Provider.of<AppUser>(context);
 
     print("length of friends in Posts(): " + friends.length.toString());
     friends.forEach((item) => print("friend from home stream::: " + item));
 
     return FutureProvider<List<FeedPost>>.value(
-      value: DatabaseService(uid: user.uid).getPosts(friends),
+      value: DatabaseService(uid: userX.uid).getPosts(friends),
       // update above to listen to posts future
-      child: PostList(),
+      child: PostList(user: user),
     );
   }
 }

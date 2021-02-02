@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:harmony_ghosh/models/app_user.dart';
 import 'package:harmony_ghosh/models/chat_thread.dart';
 import 'package:harmony_ghosh/models/comment.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:harmony_ghosh/models/my_notification.dart';
 import 'package:harmony_ghosh/models/post.dart';
 
 class DatabaseService {
@@ -12,6 +14,10 @@ class DatabaseService {
   // collection reference
   final CollectionReference reference =
       FirebaseFirestore.instance.collection("appusers");
+
+  // collection reference
+  final CollectionReference notiReference =
+      FirebaseFirestore.instance.collection("notifications");
 
   // collection reference
   final CollectionReference chatThreadsReference =
@@ -46,6 +52,8 @@ class DatabaseService {
         List<String> incomingRequests = [];
         List<String> outgoingRequests = [];
         List<String> posts = [];
+        List<String> notifications = [];
+        String bio = "";
 
         reference.doc(uid).set({
           "name": nameToSet,
@@ -56,7 +64,9 @@ class DatabaseService {
           "friends": friends,
           "incomingRequests": incomingRequests,
           "outgoingRequests": outgoingRequests,
-          "posts": posts
+          "posts": posts,
+          "bio": bio,
+          "notifications": notifications
         });
       }
     });
@@ -72,7 +82,9 @@ class DatabaseService {
           uid: doc["uid"],
           phoneNumber: "private",
           profileImageUrl: "private",
+          bio: "",
           friends: [],
+          notifications: [],
           incomingRequests: [],
           outgoingRequests: [],
           posts: []));
@@ -104,14 +116,17 @@ class DatabaseService {
     return reference.doc(uid).snapshots().map((DocumentSnapshot ds) {
       print(ds.get("phoneNumber"));
       print(ds.get("friends").length);
+      print("tag 34f: " + ds.get("bio"));
       AppUser appUser;
 
       appUser = AppUser(
           uid: uid,
           name: ds.get("name"),
+          bio: ds.get("bio"),
           profileImageUrl: ds.get("profileImageUrl"),
           phoneNumber: ds.get("phoneNumber"),
           friends: dynamicListToStringList(ds.get("friends")),
+          notifications: dynamicListToStringList(ds.get("notifications")),
           incomingRequests: dynamicListToStringList(ds.get("incomingRequests")),
           outgoingRequests: dynamicListToStringList(ds.get("outgoingRequests")),
           posts: dynamicListToStringList(ds.get("posts")));
@@ -149,7 +164,9 @@ class DatabaseService {
             uid: ds.data()["friends"][i],
             phoneNumber: "private",
             profileImageUrl: "private",
+            bio: "",
             friends: [],
+            notifications: [],
             incomingRequests: [],
             outgoingRequests: [],
             posts: []));
@@ -161,6 +178,65 @@ class DatabaseService {
     print("reached here");
     print("friend list at the end: " + list.toString());
     return list;
+  }
+
+  // get another person (could be friend, or not) // needs more work, maybe
+  Future<Map> getPersonAndPublicPosts(AppUser me, String personId) async {
+    print(me.name);
+    print(personId);
+    Map toReturn = {};
+
+    AnotherUser person;
+    List<FeedPost> posts = [];
+
+    await reference.doc(personId).get().then((ds) async {
+      List<String> mutualFriendIds = dynamicListToStringList(ds.get("friends"));
+      mutualFriendIds.forEach((item) => print(item));
+      mutualFriendIds.removeWhere((item) => !me.friends.contains(item));
+
+      List<String> mutualFriendNames = [];
+      for (int i = 0; i < mutualFriendIds.length; i++) {
+        String temp = await getNameFromDB(mutualFriendIds[i]);
+        mutualFriendNames.add(temp);
+      }
+      person = AnotherUser(
+          name: ds.get("name"),
+          uid: ds.get("uid"),
+          profileImageUrl: ds.get("profileImageUrl"),
+          bio: ds.get("bio"),
+          mutualFriendIds:
+              mutualFriendIds, // actually sends back mutual friends, not friends
+          mutualFriendNames: mutualFriendNames,
+          publicPosts: []);
+    });
+    print("person name: " + person.name);
+
+    await reference.doc(personId).get().then((ds) async {
+      if (ds.exists) {
+        List<String> postsIds = dynamicListToStringList(ds.get("posts"));
+
+        for (int i = 0; i < postsIds.length; i++) {
+          await postReference.doc(postsIds[i]).get().then((sp) async {
+            if (sp.get("visibility") == "public") {
+              posts.add(FeedPost(
+                  comments: dynamicListToStringList(sp.get("comments")),
+                  creatorName: await getNameFromDB(sp.get("creatorId")),
+                  mediaContentURL: sp.get("mediaContentURL"),
+                  likes: dynamicListToStringList(sp.get("likes")),
+                  textContent: sp.get("textContent"),
+                  postId: sp.get("postId"),
+                  timeOfPost: DateTime.fromMillisecondsSinceEpoch(
+                          int.parse(sp.get("postId").split("_")[1]))
+                      .toString()));
+            }
+          });
+        }
+      }
+    });
+
+    toReturn = {"person": person, "posts": posts};
+
+    return toReturn;
   }
 
   // friend list from snapshot
@@ -182,7 +258,9 @@ class DatabaseService {
             uid: ds.data()["outgoingRequests"][i],
             phoneNumber: "private",
             profileImageUrl: "private",
+            bio: "",
             friends: [],
+            notifications: [],
             incomingRequests: [],
             outgoingRequests: [],
             posts: []));
@@ -215,7 +293,9 @@ class DatabaseService {
             uid: ds.data()["incomingRequests"][i],
             phoneNumber: "private",
             profileImageUrl: "private",
+            bio: "",
             friends: [],
+            notifications: [],
             incomingRequests: [],
             outgoingRequests: [],
             posts: []));
@@ -230,7 +310,7 @@ class DatabaseService {
   }
 
   // send friend request
-  Future sendRequest(String id) {
+  Future sendRequest(String id) async {
     print("reaches sendRequest: " + id + " : " + uid);
 
     reference.doc(id).get().then((DocumentSnapshot ds) {
@@ -254,6 +334,17 @@ class DatabaseService {
         reference.doc(uid).update({"outgoingRequests": reqs});
       }
     });
+
+    createNotification(
+        MyNotification(
+            type: "0",
+            fromWhomId: uid,
+            fromWhomName: await getNameFromDB(uid),
+        timeStamp: DateTime.now().millisecondsSinceEpoch.toString(),
+        postId: "",
+        ownerId: id
+    )
+    );
   }
 
   // unsend friend request
@@ -284,7 +375,7 @@ class DatabaseService {
   }
 
   // accept friend request
-  Future acceptRequest(String id) {
+  Future acceptRequest(String id)async {
     print("reaches acceptRequest: " + id + " : " + uid);
 
     // remove from my incoming list
@@ -332,6 +423,17 @@ class DatabaseService {
         reference.doc(id).update({"friends": reqs});
       }
     });
+
+    createNotification(
+        MyNotification(
+            type: "1",
+            fromWhomId: uid,
+            fromWhomName: await getNameFromDB(uid),
+        timeStamp: DateTime.now().millisecondsSinceEpoch.toString(),
+        postId: "",
+        ownerId: id
+    )
+    );
   }
 
   // reject friend request
@@ -403,6 +505,24 @@ class DatabaseService {
       posts.add(post.postId);
       reference.doc(uid).update({"posts": posts});
     });
+
+    reference.doc(uid).get().then(
+        (ds) async {
+          List<String> friends = dynamicListToStringList(ds.get("friends"));
+          for(int i=0; i<friends.length; i++) {
+            createNotification(
+                MyNotification(
+                    type: "4",
+                    fromWhomId: uid,
+                    fromWhomName: await getNameFromDB(uid),
+                timeStamp: DateTime.now().millisecondsSinceEpoch.toString(),
+                postId: post.postId,
+                ownerId: friends[i]
+            )
+          );
+          }
+        }
+    );
   }
 
   // delete post
@@ -414,6 +534,10 @@ class DatabaseService {
       posts.remove(postId);
       reference.doc(uid).update({"posts": posts});
     });
+
+    firebase_storage.FirebaseStorage.instance.ref()
+        .child("post_media/" + postId + ".png")
+        .delete();
   }
 
   // post list from snapshot
@@ -422,11 +546,6 @@ class DatabaseService {
 
     for (var i = 0; i < friends.length; i++) {
       await reference.doc(friends[i]).get().then((DocumentSnapshot sp) async {
-        // print("31a post found for friend " +
-        //     ds.data()["friends"][i] +
-        //     " :: " +
-        //     sp.data()["posts"].length.toString());
-
         for (var i = 0; i < sp.data()["posts"].length; i++) {
           await postReference
               .doc(sp.data()["posts"][i])
@@ -443,9 +562,6 @@ class DatabaseService {
                   timeOfPost:
                       DateTime.fromMillisecondsSinceEpoch(int.parse(timeStamp))
                           .toString(),
-                  // (DateTime.fromMillisecondsSinceEpoch(
-                  //         postDoc.data()["postId"].split("_")[1]))
-                  //     .toString()
                   comments: dynamicListToStringList(postDoc.data()["comments"]),
                   likes: dynamicListToStringList(postDoc.data()["likes"])));
             }
@@ -476,9 +592,6 @@ class DatabaseService {
             timeOfPost:
                 DateTime.fromMillisecondsSinceEpoch(int.parse(timeStamp))
                     .toString(),
-            // (DateTime.fromMillisecondsSinceEpoch(
-            //         postDoc.data()["postId"].split("_")[1]))
-            //     .toString()
             comments: dynamicListToStringList(postDoc.data()["comments"]),
             likes: dynamicListToStringList(postDoc.data()["likes"])));
       });
@@ -521,7 +634,7 @@ class DatabaseService {
   }
 
   // post a comment
-  Future postComment(String text, String postId) {
+  Future postComment(String text, String postId) async {
     print("reaches postComment: " + text + " : " + uid);
 
     postReference.doc(postId).get().then((DocumentSnapshot ds) {
@@ -539,6 +652,17 @@ class DatabaseService {
         postReference.doc(postId).update({"comments": reqs});
       }
     });
+
+    createNotification(
+        MyNotification(
+            type: "3",
+            fromWhomId: uid,
+            fromWhomName: await getNameFromDB(uid),
+        timeStamp: DateTime.now().millisecondsSinceEpoch.toString(),
+        postId: postId,
+        ownerId: postId.split("_")[0]
+    )
+    );
   }
 
   Future getUpdatedPost(String postId) async {
@@ -556,9 +680,6 @@ class DatabaseService {
             timeOfPost:
                 DateTime.fromMillisecondsSinceEpoch(int.parse(timeStamp))
                     .toString(),
-            // (DateTime.fromMillisecondsSinceEpoch(
-            //         postDoc.data()["postId"].split("_")[1]))
-            //     .toString()
             comments: dynamicListToStringList(ds.data()["comments"]),
             likes: dynamicListToStringList(ds.data()["likes"]));
       }
@@ -623,4 +744,93 @@ class DatabaseService {
       });
     }
   }
+
+  Future reactToPost(String postId, String reactionType, bool action) async {
+    if (reactionType == "like" && action == true) {
+      // liking
+      postReference.doc(postId).get().then((ds) {
+        List<String> likes = dynamicListToStringList(ds.get("likes"));
+        likes.add(uid);
+        postReference.doc(postId).update({"likes": likes});
+      });
+
+      createNotification(
+        MyNotification(
+          type: "2",
+          fromWhomId: uid,
+          fromWhomName: await getNameFromDB(uid),
+          timeStamp: DateTime.now().millisecondsSinceEpoch.toString(),
+          postId: postId,
+          ownerId: postId.split("_")[0]
+        )
+      );
+
+    } else if (reactionType == "like" && action == false) {
+      // unliking
+      postReference.doc(postId).get().then((ds) {
+        List<String> likes = dynamicListToStringList(ds.get("likes"));
+        likes.remove(uid);
+        postReference.doc(postId).update({"likes": likes});
+      });
+    }
+  }
+
+  // create a notification in the db for uid
+  Future createNotification(MyNotification notification) async {
+    await notiReference
+        .doc(notification.ownerId + "_" +
+        notification.timeStamp)
+        .set({
+      "ownerId": notification.ownerId,
+      "type": notification.type,
+      "timeStamp": notification.timeStamp,
+      "fromWhomId": notification.fromWhomId,
+      "fromWhomName": notification.fromWhomName,
+      "postId": notification.postId
+    });
+
+    await reference.doc(notification.ownerId).get().then((ds) {
+      if (ds.exists) {
+        List<String> notifications =
+            dynamicListToStringList(ds.get("notifications"));
+        notifications.add(notification.ownerId + "_" +
+            notification.timeStamp);
+        reference.doc(notification.ownerId).update({"notifications": notifications});
+      }
+    });
+  }
+
+  // get my notifications
+  Future<List<MyNotification>> getMyNotifications() async {
+    List<MyNotification> list = [];
+    await reference.doc(uid).get().then((ds) async {
+      if (ds.exists) {
+        List<String> notifications =
+            dynamicListToStringList(ds.get("notifications"));
+
+        for (int i = 0; i < notifications.length; i++) {
+          await notiReference.doc(notifications[i]).get().then((sp) {
+            if (sp.exists) {
+              list.add(
+                MyNotification(
+                  ownerId: sp.get("ownerId"),
+                  fromWhomId: sp.get("fromWhomId"),
+                  fromWhomName: sp.get("fromWhomName"),
+                  timeStamp: DateTime
+                      .fromMillisecondsSinceEpoch(int.parse(sp.get("timeStamp")))
+                      .toString(),
+                  postId: sp.get("postId"),
+                  type: sp.get("type"),
+                )
+              );
+            }
+          });
+        }
+      }
+    });
+
+    return list;
+  }
+
+
 }

@@ -64,17 +64,20 @@ class _InteractionPostTileState extends State<InteractionPostTile> {
             SizedBox(
               height: 5,
             ),
-            ListTile(
-              leading: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    elevation: 10,
-                    primary: Colors.blue[800],
-                    shadowColor: Colors.blue),
-                child: Text(
-                  "Like",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            Visibility(
+              visible: false,
+              child: ListTile(
+                leading: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      elevation: 10,
+                      primary: Colors.blue[800],
+                      shadowColor: Colors.blue),
+                  child: Text(
+                    "Like",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () {},
                 ),
-                onPressed: () {},
               ),
             ),
           ],

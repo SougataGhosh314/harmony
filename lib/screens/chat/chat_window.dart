@@ -24,6 +24,7 @@ class _ChatPageState extends State<ChatPage> {
 
   String myProfilePicFromDB = "";
   String buddyProfilePicFromDB = "";
+  NetworkImage myImage, buddyImage;
 
   Future getDownloadURL(String myUid, String buddyUid) async {
     firebase_storage.Reference ref =
@@ -36,7 +37,9 @@ class _ChatPageState extends State<ChatPage> {
     print("Url recieved: $url");
     setState(() {
       myProfilePicFromDB = url;
+      myImage = NetworkImage(url);
       buddyProfilePicFromDB = url2;
+      buddyImage = NetworkImage(url2);
     });
   }
 
@@ -44,6 +47,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
     data = data.isNotEmpty ? data : ModalRoute.of(context).settings.arguments;
 
     String senderId = data["me"].uid;
@@ -91,6 +95,8 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomPadding: false,
       appBar: AppBar(
         title: Text("Chat with " + buddyName),
       ),
@@ -99,6 +105,10 @@ class _ChatPageState extends State<ChatPage> {
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             List<ChatMessage> chatList = snapshot.data;
+            _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut);
 
             return ListView.builder(
               controller: _scrollController,
@@ -107,77 +117,123 @@ class _ChatPageState extends State<ChatPage> {
               itemBuilder: (context, index) {
                 if (chatList[index].senderName == senderId) {
                   return NewWidget(
-                      imageURL: imageURL, chatList: chatList, index: index);
+                      myImage: myImage, chatList: chatList, index: index);
                 } else if (chatList[index].senderName == recipientId) {
                   return NewWidget2(
-                      imageURL: imageURL2, chatList: chatList, index: index);
+                      buddyImage: buddyImage, chatList: chatList, index: index);
                 } else {
                   return NewWidget(
-                      imageURL: imageURL, chatList: chatList, index: index);
+                      myImage: myImage, chatList: chatList, index: index);
                 }
               },
             );
           } else {
-            return Text("No messages yet");
+            return ListView.builder(
+              controller: _scrollController,
+              reverse: false,
+              itemCount: 1,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    "Say hi to your friend",
+                    style: TextStyle(
+                        color: Colors.blue[500],
+                        fontStyle: FontStyle.italic,
+                        fontSize: 24),
+                  ),
+                );
+              },
+            );
           }
         },
       ),
-      bottomNavigationBar: BottomAppBar(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            Expanded(
-              child: Container(
-                padding: EdgeInsets.fromLTRB(5, 5, 5, 10),
-                width: 280,
-                child: TextFormField(
-                  initialValue: "",
-                  keyboardType: TextInputType.multiline,
-                  decoration:
-                      textInputDecoration.copyWith(hintText: "Your message"),
-                  onChanged: (val) {
-                    setState(() {
-                      myMessage = val;
-                    });
-                  },
+      bottomNavigationBar: SingleChildScrollView(
+        reverse: true,
+        padding: EdgeInsets.only(bottom: bottom),
+        child: BottomAppBar(
+          child: Row(
+            // crossAxisAlignment: CrossAxisAlignment.center,
+            // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              Expanded(
+                flex: 4,
+                child: Container(
+                  padding: EdgeInsets.fromLTRB(5, 5, 5, 10),
+                  child: TextFormField(
+                    initialValue: "",
+                    keyboardType: TextInputType.multiline,
+                    decoration:
+                        textInputDecoration.copyWith(hintText: "Your message"),
+                    onChanged: (val) {
+                      setState(() {
+                        myMessage = val;
+                      });
+                    },
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: ElevatedButton(
-                child: Text("Send"),
-                onPressed: () async {
-                  if (myMessage != "") {
-                    await DatabaseService(uid: senderId)
-                        .sendMessage(recipientId, myMessage);
+              Expanded(
+                flex: 1,
+                child: Container(
+                  padding: EdgeInsets.fromLTRB(0, 0, 10, 0),
+                  child: ElevatedButton(
+                    child: Text("Send"),
+                    onPressed: () async {
+                      if (myMessage != "") {
+                        await DatabaseService(uid: senderId)
+                            .sendMessage(recipientId, myMessage);
 
-                    Fluttertoast.showToast(
-                        msg: "message sent",
-                        toastLength: Toast.LENGTH_LONG,
-                        gravity: ToastGravity.CENTER);
+                        Fluttertoast.showToast(
+                            msg: "message sent",
+                            toastLength: Toast.LENGTH_LONG,
+                            gravity: ToastGravity.CENTER);
 
-                    // Navigator.pushNamed(context, "/interact_with_feed_post",
-                    //     arguments: {
-                    //       "post": await DatabaseService(uid: user.uid)
-                    //           .getUpdatedPost(post.postId)
-                    //     });
+                        setState(() {
+                          if (found == false) {
+                            chatThreadsReference
+                                .doc(senderId + "_" + recipientId)
+                                .get()
+                                .then((ds) {
+                              if (ds.exists) {
+                                listenTo = ChatService(
+                                        recipientId: recipientId,
+                                        senderId: senderId)
+                                    .getChatThreadMessagesSR;
+                                found = true;
+                              }
+                            });
+                          }
 
-                    // setState(() {});
-                    _scrollController.animateTo(
-                        _scrollController.position.maxScrollExtent,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut);
-                  } else {
-                    Fluttertoast.showToast(
-                        msg: "can't leave empty",
-                        toastLength: Toast.LENGTH_SHORT,
-                        gravity: ToastGravity.CENTER);
-                  }
-                },
+                          if (!found) {
+                            chatThreadsReference
+                                .doc(recipientId + "_" + senderId)
+                                .get()
+                                .then((ds) {
+                              if (ds.exists) {
+                                setState(() {
+                                  listenTo = ChatService(
+                                          recipientId: recipientId,
+                                          senderId: senderId)
+                                      .getChatThreadMessagesRS;
+                                  found = true;
+                                });
+                              }
+                            });
+                          }
+                        });
+                      } else {
+                        Fluttertoast.showToast(
+                            msg: "can't leave empty",
+                            toastLength: Toast.LENGTH_SHORT,
+                            gravity: ToastGravity.CENTER);
+                      }
+                    },
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -187,12 +243,12 @@ class _ChatPageState extends State<ChatPage> {
 class NewWidget extends StatelessWidget {
   const NewWidget({
     Key key,
-    @required this.imageURL,
+    @required this.myImage,
     @required this.chatList,
     @required this.index,
   }) : super(key: key);
 
-  final String imageURL;
+  final NetworkImage myImage;
   final List<ChatMessage> chatList;
   final int index;
 
@@ -204,7 +260,7 @@ class NewWidget extends StatelessWidget {
       margin: EdgeInsets.fromLTRB(10, 6, 10, 0),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundImage: NetworkImage(imageURL),
+          backgroundImage: myImage,
           radius: 25,
           backgroundColor: Colors.red,
         ),
@@ -225,12 +281,12 @@ class NewWidget extends StatelessWidget {
 class NewWidget2 extends StatelessWidget {
   const NewWidget2({
     Key key,
-    @required this.imageURL,
+    @required this.buddyImage,
     @required this.chatList,
     @required this.index,
   }) : super(key: key);
 
-  final String imageURL;
+  final NetworkImage buddyImage;
   final List<ChatMessage> chatList;
   final int index;
 
@@ -251,7 +307,7 @@ class NewWidget2 extends StatelessWidget {
               fontWeight: FontWeight.bold, color: Colors.green, fontSize: 10),
         ),
         trailing: CircleAvatar(
-          backgroundImage: NetworkImage(imageURL),
+          backgroundImage: buddyImage,
           radius: 25,
           backgroundColor: Colors.red,
         ),

@@ -92,14 +92,6 @@ class _MyProfileState extends State<MyProfile> {
                                   fontWeight: FontWeight.bold, fontSize: 24),
                             ),
                             SizedBox(
-                              height: 0,
-                            ),
-                            //Text("UID: ${userData.uid}"),
-                            SizedBox(
-                              height: 20,
-                            ),
-                            Text(userData.phoneNumber),
-                            SizedBox(
                               height: 20,
                             ),
                             FlatButton(
@@ -116,34 +108,98 @@ class _MyProfileState extends State<MyProfile> {
                               child: Form(
                                 child: Column(
                                   children: [
-                                    TextFormField(
-                                      initialValue: userData.name,
-                                      keyboardType: TextInputType.name,
-                                      decoration: textInputDecoration.copyWith(
-                                          hintText: "new name"),
-                                      onChanged: (val) {
-                                        setState(() => {newName = val});
-                                      },
+                                    Center(
+                                      child: TextFormField(
+                                        textAlign: TextAlign.center,
+                                        initialValue: userData.name,
+                                        keyboardType: TextInputType.name,
+                                        decoration: textInputDecoration
+                                            .copyWith(hintText: "new name"),
+                                        onChanged: (val) {
+                                          setState(() => {newName = val});
+                                        },
+                                      ),
                                     ),
                                     SizedBox(
                                       height: 20,
                                     ),
-                                    FlatButton(
-                                      child: Text("Update name"),
-                                      onPressed: () async {
-                                        await DatabaseService(uid: userData.uid)
-                                            .updateName(newName);
-                                        Fluttertoast.showToast(
-                                          msg: "Name updated",
-                                          toastLength: Toast.LENGTH_SHORT,
-                                          gravity: ToastGravity.CENTER,
-                                        );
-                                        VISISBILITY = false;
-                                      },
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        FlatButton(
+                                          color: Colors.black87,
+                                          child: Text(
+                                            "Update name",
+                                            style:
+                                                TextStyle(color: Colors.white),
+                                          ),
+                                          onPressed: () async {
+                                            if (newName != userData.name) {
+                                              await DatabaseService(
+                                                      uid: userData.uid)
+                                                  .updateName(newName);
+                                              Fluttertoast.showToast(
+                                                msg: "Name updated",
+                                                toastLength: Toast.LENGTH_SHORT,
+                                                gravity: ToastGravity.CENTER,
+                                              );
+                                            } else {
+                                              Fluttertoast.showToast(
+                                                msg:
+                                                    "Please try with a new name",
+                                                toastLength: Toast.LENGTH_SHORT,
+                                                gravity: ToastGravity.CENTER,
+                                              );
+                                            }
+                                            setState(() {
+                                              VISISBILITY = false;
+                                            });
+                                          },
+                                        ),
+                                        FlatButton(
+                                          color: Colors.white,
+                                          child: Text(
+                                            "Cancel",
+                                            style:
+                                                TextStyle(color: Colors.black),
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              VISISBILITY = false;
+                                            });
+                                          },
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
                               ),
+                            ),
+                            SizedBox(
+                              height: 20,
+                            ),
+                            Text(userData.phoneNumber),
+                            SizedBox(
+                              height: 20,
+                            ),
+                            Text(
+                              "About:",
+                              style: TextStyle(
+                                  color: Colors.blue[800],
+                                  fontSize: 18,
+                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(
+                              height: 20,
+                            ),
+                            Text(
+                              userData.bio,
+                              style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),

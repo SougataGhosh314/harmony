@@ -23,9 +23,6 @@ class ChatService {
 
   Future getNameFromDB(String uid) async {
     String name = await reference.doc(uid).get().then((sp) {
-      //print("Found one: " + sp.data()["name"].toString());
-      // friendName = sp.data()["name"].toString();
-      // print(friendName);
       return sp.data()["name"].toString();
     });
 
@@ -72,59 +69,5 @@ class ChatService {
         .doc(senderId + "_" + recipientId)
         .snapshots()
         .map(getList);
-
-    // Stream<List<ChatMessage>> myStream;
-    // bool done = false;
-    // print("inside getChatThreadMessages " + senderId + "_" + recipientId);
-    // chatThreadsReference
-    //     .doc(senderId + "_" + recipientId)
-    //     .get()
-    //     .then((DocumentSnapshot ds) async {
-    //   if (ds.exists) {
-    //     print("senderId_recipientId");
-    //     done = true;
-    //     return chatThreadsReference
-    //         .doc(senderId + "_" + recipientId)
-    //         .snapshots()
-    //         .map(getList);
-    //   }
-    // });
-
-    // if (!done) {
-    //   chatThreadsReference
-    //       .doc(recipientId + "_" + senderId)
-    //       .get()
-    //       .then((DocumentSnapshot ds) async {
-    //     if (ds.exists) {
-    //       print("recipientId_senderId");
-    //       done = true;
-    //       getList(ds);
-
-    //       // chatThreadsReference
-    //       //     .doc(recipientId + "_" + senderId)
-    //       //     .get()
-    //       //     .then((DocumentSnapshot ds) {
-    //       //   // List<String> tempList =
-    //       //   //     dynamicListToStringList(ds.data()["chatlist"]);
-    //       //   print(ds.data()["chatList"].length);
-    //       //   //tempList.forEach((item) => print(item));
-    //       // });
-
-    //       return chatThreadsReference
-    //           .doc(recipientId + "_" + senderId)
-    //           .snapshots()
-    //           .map(getList);
-
-    //       //print("myStream:: " + myStream.toString());
-
-    //       //return myStream;
-    //     }
-    //   });
-    // }
-
-    //print("reached here");
-    // print("chat list at the end: " + list.toString());
-    // return list;
-    //return myStream;
   }
 }

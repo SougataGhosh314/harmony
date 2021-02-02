@@ -176,9 +176,7 @@ class _AddPostState extends State<AddPost> {
                           creatorId: user.uid,
                           likes: [],
                           comments: [],
-                          postId: user.uid +
-                              "_" +
-                              DateTime.now().millisecondsSinceEpoch.toString());
+                          postId: postID);
 
                       await DatabaseService(uid: user.uid).createPost(myPost);
 

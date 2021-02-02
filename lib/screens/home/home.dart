@@ -38,14 +38,19 @@ class _HomeState extends State<Home> {
                     children: [
                       DrawerHeader(
                         child: Text(
-                          'Menu',
+                          'Harmony',
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 24,
-                              color: Colors.white),
+                              color: Colors.black),
                         ),
                         decoration: BoxDecoration(
                           color: Colors.black45,
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomRight,
+                            end: AlignmentDirectional.topStart,
+                            colors: [Colors.black54, Colors.red[800]],
+                          ),
                         ),
                       ),
                       ListTile(
@@ -92,6 +97,18 @@ class _HomeState extends State<Home> {
                           // ...
                           //Navigator.pop(context);
                           Navigator.popAndPushNamed(context, "/people");
+                        },
+                      ),
+                      ListTile(
+                        title: Text('Notifications'),
+                        onTap: () {
+                          // Update the state of the app.
+                          // ...
+                          //Navigator.pop(context);
+                          Navigator.popAndPushNamed(context, "/my_notifications",
+                          arguments: {
+                            "me": appUser
+                          });
                         },
                       ),
                     ],
@@ -159,7 +176,7 @@ class _HomeState extends State<Home> {
                         ),
                       ),
                       Expanded(
-                        child: Posts(friends: appUser.friends),
+                        child: Posts(friends: appUser.friends, user: appUser),
                       ),
                     ],
                   ),

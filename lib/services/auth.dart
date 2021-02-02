@@ -19,6 +19,8 @@ class AuthService {
             profileImageUrl: "",
             uid: user.uid,
             friends: [],
+            notifications: [],
+            bio: "",
             incomingRequests: [],
             outgoingRequests: [],
             posts: [])

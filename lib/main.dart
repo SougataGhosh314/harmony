@@ -11,6 +11,8 @@ import 'package:harmony_ghosh/screens/nav_items/my_timeline/my_posts.dart';
 import 'package:harmony_ghosh/screens/nav_items/people/people.dart';
 import 'package:harmony_ghosh/screens/nav_items/recieved_requests/recieved_requests.dart';
 import 'package:harmony_ghosh/screens/nav_items/sent_requests/sent_requests.dart';
+import 'package:harmony_ghosh/screens/not_my_profile/person_profile.dart';
+import 'package:harmony_ghosh/screens/notifications/my_notifications.dart';
 import 'package:harmony_ghosh/screens/posts/add_post.dart';
 import 'package:harmony_ghosh/screens/posts/interact_with_feedpost.dart';
 import 'package:harmony_ghosh/screens/wrapper.dart';
@@ -42,7 +44,9 @@ class MyApp extends StatelessWidget {
           "/recieved_requests": (context) => RecievedRequests(),
           "/add_post": (context) => AddPost(),
           "/interact_with_feed_post": (context) => InteractWithFeedPost(),
-          "/chat_window": (context) => ChatPage()
+          "/chat_window": (context) => ChatPage(),
+          "/person_profile": (context) => PersonProfile(),
+          "/my_notifications": (context) => MyNotifications()
         },
       ),
     );

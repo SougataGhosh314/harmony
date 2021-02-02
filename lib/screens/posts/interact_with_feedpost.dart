@@ -11,6 +11,8 @@ import 'package:harmony_ghosh/services/database.dart';
 import 'package:harmony_ghosh/shared/constants.dart';
 import 'package:provider/provider.dart';
 
+ScrollController _scrollController = new ScrollController();
+
 class InteractWithFeedPost extends StatefulWidget {
   @override
   _InteractWithFeedPostState createState() => _InteractWithFeedPostState();
@@ -22,6 +24,8 @@ class _InteractWithFeedPostState extends State<InteractWithFeedPost> {
 
   @override
   Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+
     if (data.isEmpty) {
       data = ModalRoute.of(context).settings.arguments;
     } else {
@@ -39,78 +43,93 @@ class _InteractWithFeedPostState extends State<InteractWithFeedPost> {
     final user = Provider.of<AppUser>(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomPadding: false,
       appBar: AppBar(
         title: Text("Post from your feed"),
       ),
       body: Container(
         padding: EdgeInsets.symmetric(horizontal: 5, vertical: 10),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.vertical,
-          child: Column(
-            children: [
-              InteractionPostTile(
-                post: post,
-              ),
-              SizedBox(
-                height: 5,
-              ),
-              Text("Comments: "),
-              FutureProvider<List<Comment>>.value(
+        child: Column(
+          children: [
+            InteractionPostTile(
+              post: post,
+            ),
+            SizedBox(
+              height: 5,
+            ),
+            Text("Comments: "),
+            Expanded(
+              child: FutureProvider<List<Comment>>.value(
                 value: DatabaseService(uid: user.uid).getComments(post.postId),
                 child: CommentList(),
               ),
-              SizedBox(
-                height: 5,
+            ),
+            SizedBox(
+              height: 5,
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SingleChildScrollView(
+        reverse: true,
+        padding: EdgeInsets.only(bottom: bottom),
+        child: BottomAppBar(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Expanded(
+                flex: 5,
+                child: Container(
+                  padding: EdgeInsets.fromLTRB(5, 5, 5, 10),
+                  child: TextFormField(
+                    initialValue: "",
+                    keyboardType: TextInputType.multiline,
+                    decoration:
+                        textInputDecoration.copyWith(hintText: "Your comment"),
+                    onChanged: (val) {
+                      setState(() {
+                        myComment = val;
+                      });
+                    },
+                  ),
+                ),
               ),
-              Form(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: EdgeInsets.fromLTRB(5, 5, 5, 10),
-                        width: 280,
-                        child: TextFormField(
-                          initialValue: "",
-                          keyboardType: TextInputType.multiline,
-                          decoration: textInputDecoration.copyWith(
-                              hintText: "Your comment"),
-                          onChanged: (val) {
-                            setState(() {
-                              myComment = val;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: ElevatedButton(
-                        child: Text("Comment"),
-                        onPressed: () async {
-                          if (myComment != "") {
-                            await DatabaseService(uid: user.uid)
-                                .postComment(myComment, post.postId);
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 0, 10, 0),
+                  child: ElevatedButton(
+                    child: Text("Comment"),
+                    onPressed: () async {
+                      if (myComment != "") {
+                        await DatabaseService(uid: user.uid)
+                            .postComment(myComment, post.postId);
 
-                            Fluttertoast.showToast(
-                                msg: "Comment added",
-                                toastLength: Toast.LENGTH_LONG,
-                                gravity: ToastGravity.CENTER);
+                        Fluttertoast.showToast(
+                            msg: "Comment added",
+                            toastLength: Toast.LENGTH_LONG,
+                            gravity: ToastGravity.CENTER);
 
-                            Navigator.pushNamed(
-                                context, "/interact_with_feed_post",
-                                arguments: {
-                                  "post": await DatabaseService(uid: user.uid)
-                                      .getUpdatedPost(post.postId)
-                                });
-                          } else {
-                            Fluttertoast.showToast(
-                                msg: "can't leave empty",
-                                toastLength: Toast.LENGTH_SHORT,
-                                gravity: ToastGravity.CENTER);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
+                        // _scrollController.animateTo(
+                        //     _scrollController.position.maxScrollExtent,
+                        //     duration: const Duration(milliseconds: 300),
+                        //     curve: Curves.easeOut);
+
+                        Navigator.popAndPushNamed(
+                            context, "/interact_with_feed_post", arguments: {
+                          "post": await DatabaseService(uid: user.uid)
+                              .getUpdatedPost(post.postId)
+                        });
+                      } else {
+                        Fluttertoast.showToast(
+                            msg: "can't leave empty",
+                            toastLength: Toast.LENGTH_SHORT,
+                            gravity: ToastGravity.CENTER);
+                      }
+                    },
+                  ),
                 ),
               ),
             ],
@@ -144,6 +163,7 @@ class _CommentListState extends State<CommentList> {
       return Container(
         child: ListView.builder(
           shrinkWrap: true,
+          controller: _scrollController,
           scrollDirection: Axis.vertical,
           itemCount: comments.length,
           itemBuilder: (context, index) {
